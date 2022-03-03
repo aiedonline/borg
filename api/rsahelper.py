@@ -38,10 +38,10 @@ class RsaHelper():
         return base64.b64encode( cipher.encrypt(data.encode()) ).decode();
     def decrypt(self, data):
         decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
-        return decipher.decrypt(base64.b64decode( data.encode()) , None).decode();
+        return decipher.decrypt(    base64.b64decode( data.encode()   ) , None).decode();
 
 
-#r = RsaHelper(name_file_pem="meu.pem");
+#r = RsaHelper(path_to_pem="/tmp/" ,name_file_pem="botafogodotextor.pem", create_private=True);
 #texto = "Botafogo campeão, será!!!! Deus salve Textor";
 #criptografado = r.encrypt(texto);
 #descriptografado = r.decrypt(criptografado);
