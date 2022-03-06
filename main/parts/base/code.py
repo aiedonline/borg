@@ -1,6 +1,5 @@
 import json, os, sys, traceback, socket;
 
-os.environ['ROOT'] = "/home/well/projects/borg/";
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
 os.environ['SSHS'] = os.environ['ROOT'] + "/.server";
 
@@ -8,8 +7,9 @@ sys.path.insert(0, os.environ['ROOT']);
 
 from threading import Thread;
 from api.sock_util import *;
+from main.parts.service import *;
 
-class BorgBase():
+class BorgBase(Service):
     def __init__(self, CONFIG):
         self.CONFIG = CONFIG;
         self.LOCAL = json.loads(open(os.environ['ROOT'] + "/main/parts/base/config.json").read());
@@ -44,8 +44,8 @@ class BorgBase():
         result = class_method(clientsocket, address );
     
     def dispacher_HELLO(self, clientsocket, address):
-        protocol = "HELLO"; version = "000";
-        borg_response(clientsocket, address, protocol, version, "OLá amigo");
+        protocol = "HELLO"; version = "111";
+        borg_response(clientsocket, address, protocol, version, "OLAAMIGO");
         
     
 try:

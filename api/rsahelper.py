@@ -36,9 +36,23 @@ class RsaHelper():
     def encrypt(self, data):
         cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
         return base64.b64encode( cipher.encrypt(data.encode()) ).decode();
+    def encryptAll(self, data):
+        cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
+        count_cript = 0;
+        result = [];
+        while count_cript + 100 < len(data):
+            result.append(base64.b64encode( cipher.encrypt(data[count_cript:count_cript + 100].encode()) ).decode());
+            count_cript += 100;
+        return result;
     def decrypt(self, data):
         decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
         return decipher.decrypt(    base64.b64decode( data.encode()   ) , None).decode();
+    def decryptArray(self, array):
+        decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
+        result = "";
+        for item in array:
+            result += decipher.decrypt(    base64.b64decode( item.encode()   ) , None).decode();
+        return result;
 
 
 #r = RsaHelper(path_to_pem="/tmp/" ,name_file_pem="botafogodotextor.pem", create_private=True);
