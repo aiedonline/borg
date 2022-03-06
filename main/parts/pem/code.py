@@ -1,7 +1,5 @@
 import json, os, sys, traceback, socket;
 
-
-os.environ['ROOT'] = "/home/well/projects/borg/";
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
 os.environ['SSHS'] = os.environ['ROOT'] + "/.server";
 
