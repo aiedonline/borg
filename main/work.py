@@ -2,7 +2,7 @@ import os, sys, time;
 
 from threading import Thread
 
-os.environ['ROOT'] = "/home/well/projects/borg/";
+os.environ['ROOT'] = os.path.abspath("./");
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
 os.environ['SSHS'] = os.environ['ROOT'] + "/.server";
 ROOT = os.environ['ROOT'];
@@ -33,7 +33,7 @@ def thread_mestre():
             for ip in CONFIG["ips"]:
                 print(os.environ['ROOT'] + "/.client/.ssh/public_" + ip['ip'] + ".pem");
                 if os.path.exists(os.environ['ROOT'] + "/.client/.ssh/public_" + ip['ip'] + ".pem"):
-                    print("Chegou como resposta: ", borg_request(ip["ip"], ip["port"] + 1, "HELLO", "0001", "HELLO")[0]);
+                    print("Chegou como resposta: ", borg_request(ip["ip"], ip["port"] + 1, "HELLO", "222", "HELLO")[0]);
         time.sleep(10);
 
 Thread(target=thread_load_config).start();
