@@ -15,6 +15,7 @@ mkdir /tmp/borg/.client
 mkdir /tmp/borg/data
 mkdir /tmp/borg/database
 
-scp -rp /tmp/borg/* borg@54.37.137.117:/opt/borg/
+# máquina de testes
+scp -rp /tmp/borg/* debian@54.37.137.117:/opt/borg/
 
 

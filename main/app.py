@@ -19,7 +19,7 @@ import subprocess, argparse;
 
 from threading import Thread
 
-os.environ['ROOT'] = os.path.abspath("./");
+os.environ['ROOT'] = "/opt/borg/";
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
 os.environ['SSHS'] = os.environ['ROOT'] + "/.server";
 
