@@ -47,7 +47,8 @@ def borg_request_raw(ip, port, protocol, version, text):
         buffer = sock.recv(expected_size - len(packet))
         if not buffer:
             raise Exception("Incomplete file received")
-        packet += buffer
+        packet += buffer;
+    #print(packet.decode("utf-8"));
     return envelop_split(  json.loads(packet.decode("utf-8"))  );
 
 

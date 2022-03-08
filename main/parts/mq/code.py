@@ -1,5 +1,5 @@
 
-import json, os, sys, traceback, socket, traceback, uuid;
+import json, os, sys, traceback, socket, traceback, uuid, datetime;
 from warnings import catch_warnings;
 
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
@@ -14,6 +14,7 @@ from main.parts.service import *;
 
 class BorgMq(Service):
     def __init__(self, CONFIG):
+        self.semaphore = [];
         self.CONFIG = CONFIG;
         self.LOCAL = json.loads(open(os.environ['ROOT'] + "/main/parts/mq/config.json").read());
         print("...::: Módulo MQ :::....:" , self.CONFIG['port'] + self.LOCAL["port"]);
@@ -48,14 +49,39 @@ class BorgMq(Service):
     
     def dispacher_HASWO_000(self, clientsocket, address, server_data):
         #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
+        my = My();
         protocol = "HASWO"; version = "000";
         server_data = json.loads(server_data[0]);
         groups = server_data['groups'];
-        sql = "SELECT wor.* FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id where gro.name in ( 'hello' )  and wor.execute_in < '2022-03-08 23:59:59' order by wor.execute_in asc limit 100";
-        my = My();
-        dados = my.datatable(sql, [] );
-        print(dados);
+        groups_id = "";
+
+        # Montar a lista de GRUPOS por ID
+        sql = "select * from mq_group where name = %s limit 1";
+        for i in range(len(groups)):
+            dados = my.datatable(sql, [groups[i]]);
+            if len(dados) > 0:
+                if len(groups_id) > 0:
+                    groups_id += ", ";
+                groups_id += "'" + dados[0]['id'] + "'";
+        
+        # Semáforo e execuçào da consulta
+        my_thread_id = str(uuid.uuid4());
+        self.semaphore.append(my_thread_id);
+        while self.semaphore[0] != my_thread_id:
+            time.sleep(0.3); 
+        try:
+            sql = "SELECT wor.* FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' order by wor.execute_in asc limit 1";
+            
+            dados = my.datatable(sql, [] );
+
+            for dado in dados:
+                sql = "UPDATE mq_work set execute_in = %s where id = %s ";
+                # TODO: tempo de 5 minutos tem que ser colocado na tabela mq_work
+                my.noquery(sql, [(datetime.datetime.utcnow() + datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S') ,dado["id"]]);
+        finally:
+            self.semaphore.pop(0);
         borg_response(clientsocket, address, protocol, version,  json.dumps(dados, default=str) );
+
     def dispacher_REGIS_000(self, clientsocket, address, server_data):
         #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
         protocol = "REGIS"; version = "000";
