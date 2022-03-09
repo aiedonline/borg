@@ -24,49 +24,37 @@ CONFIG_SERVER = json.loads(open(ROOT + "/data/server/config.json").read());
 # ===================== RAW ==============================
 def borg_response_raw(sock, ip, protocol, version, text):
     array = [envelop_make(protocol, version, text)];
-    sock.sendall(len(json.dumps(array).encode("utf-8")).to_bytes(8, 'big'))
-    sock.sendall(json.dumps(array).encode("utf-8"))
+    data_to_send = "raw000" + json.dumps(array).encode("utf-8");
+    sock.sendall(len(data_to_send).to_bytes(8, 'big'));
+    sock.sendall(data_to_send);
 
 def borg_request_raw(ip, port, protocol, version, text):
     text = envelop_make(protocol, version, text);
     array = [text];
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
     sock.connect((ip, port));
-    sock.sendall(len(json.dumps(array).encode("utf-8")).to_bytes(8, 'big'))
-    sock.sendall(json.dumps(array).encode("utf-8"))
+    data_to_send = "raw000" + json.dumps(array).encode("utf-8");
+    sock.sendall(len(data_to_send).to_bytes(8, 'big'));
+    sock.sendall(data_to_send);
     # ---------------- retorno resposta -------------
-    expected_size = b""
-    while len(expected_size) < 8:
-        more_size = sock.recv(8 - len(expected_size))
-        if not more_size:
-            raise Exception("Short file length received")
-        expected_size += more_size
-    expected_size = int.from_bytes(expected_size, 'big')
-    packet = b""  
-    while len(packet) < expected_size:
-        buffer = sock.recv(expected_size - len(packet))
-        if not buffer:
-            raise Exception("Incomplete file received")
-        packet += buffer;
-    #print(packet.decode("utf-8"));
-    return envelop_split(  json.loads(packet.decode("utf-8"))  );
+    return borg_wait(sock, ip);
 
 
-def borg_wait_raw(sock, address):
-    expected_size = b""
-    while len(expected_size) < 8:
-        more_size = sock.recv(8 - len(expected_size))
-        if not more_size:
-            raise Exception("Short file length received")
-        expected_size += more_size
-    expected_size = int.from_bytes(expected_size, 'big')
-    packet = b""  # Use bytes, not str, to accumulate
-    while len(packet) < expected_size:
-        buffer = sock.recv(expected_size - len(packet))
-        if not buffer:
-            raise Exception("Incomplete file received")
-        packet += buffer
-    return envelop_split( json.loads(packet.decode("utf-8")) );
+#def borg_wait_raw(sock, address):
+#    expected_size = b""
+#    while len(expected_size) < 8:
+#        more_size = sock.recv(8 - len(expected_size))
+#        if not more_size:
+#            raise Exception("Short file length received")
+#        expected_size += more_size
+#    expected_size = int.from_bytes(expected_size, 'big')
+#    packet = b""  # Use bytes, not str, to accumulate
+#    while len(packet) < expected_size:
+#        buffer = sock.recv(expected_size - len(packet))
+#        if not buffer:
+#            raise Exception("Incomplete file received")
+#        packet += buffer
+#    return envelop_split( json.loads(packet.decode("utf-8")) );
 
 # ===================== RSA =================================
 
@@ -101,22 +89,22 @@ def borg_request_rsa(ip, port, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server" , name_file_pem= "borg.pem" );
     return envelop_split( rsa.decryptArray(  json.loads(packet.decode("utf-8")) ) );
 
-def borg_wait_rsa(sock, address):
-    expected_size = b""
-    while len(expected_size) < 8:
-        more_size = sock.recv(8 - len(expected_size))
-        if not more_size:
-            raise Exception("Short file length received")
-        expected_size += more_size
-    expected_size = int.from_bytes(expected_size, 'big')
-    packet = b""  # Use bytes, not str, to accumulate
-    while len(packet) < expected_size:
-        buffer = sock.recv(expected_size - len(packet))
-        if not buffer:
-            raise Exception("Incomplete file received")
-        packet += buffer
-    rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server", name_file_pem= "borg.pem" );
-    return envelop_split( rsa.decryptArray(  json.loads(packet.decode("utf-8")) ) );
+#def borg_wait_rsa(sock, address):
+#    expected_size = b""
+#    while len(expected_size) < 8:
+#        more_size = sock.recv(8 - len(expected_size))
+#        if not more_size:
+#            raise Exception("Short file length received")
+#        expected_size += more_size
+#    expected_size = int.from_bytes(expected_size, 'big')
+#    packet = b""  # Use bytes, not str, to accumulate
+#    while len(packet) < expected_size:
+#        buffer = sock.recv(expected_size - len(packet))
+#        if not buffer:
+#            raise Exception("Incomplete file received")
+#        packet += buffer
+#    rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server", name_file_pem= "borg.pem" );
+#    return envelop_split( rsa.decryptArray(  json.loads(packet.decode("utf-8")) ) );
 
 
 # ----------------------------------- ENVELOPE DE COMUNICAÇÃO ----------------------------
