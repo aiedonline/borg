@@ -70,13 +70,13 @@ def borg_wait_raw(sock, address):
 
 # ===================== CRYPTO =================================
 
-def borg_response_crypt(sock, ip, protocol, version, text):
+def borg_response_rsa(sock, ip, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
     array = rsa.encryptAll( envelop_make(protocol, version, text) );
     sock.sendall(len(json.dumps(array).encode("utf-8")).to_bytes(8, 'big'))
     sock.sendall(json.dumps(array).encode("utf-8"))
 
-def borg_request_crypt(ip, port, protocol, version, text):
+def borg_request_rsa(ip, port, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
     text = envelop_make(protocol, version, text);
     array = rsa.encryptAll( text );
@@ -101,7 +101,7 @@ def borg_request_crypt(ip, port, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server" , name_file_pem= "borg.pem" );
     return envelop_split( rsa.decryptArray(  json.loads(packet.decode("utf-8")) ) );
 
-def borg_wait_crypt(sock, address):
+def borg_wait_rsa(sock, address):
     expected_size = b""
     while len(expected_size) < 8:
         more_size = sock.recv(8 - len(expected_size))
