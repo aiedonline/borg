@@ -60,19 +60,35 @@ class BorgCommuniction():
     def __init__(self, ip, port):
         self.ip = ip;
         self.port = port;
-    def request(self, protocol, protocol_version,  data):
+        self.key = None;
+        self.session_id = None;
+        self.keynew();
+    
+    def __del__(self):
+        borg_request_rsa(self.ip, self.port, "KEYCL", "000", "{}");
+        
+    def keynew(self):
+        retorno = borg_request_rsa(self.ip, self.port, "KEYNW" , "000", "{}");
+        self.key = retorno["key"];
+        self.session_id = retorno["session_id"];
+        
+    def request(self, protocol, protocol_version,  data, type="raw"):
         print(self.ip, self.port);
-        return borg_request(self.ip, self.port, protocol, protocol_version, json.dumps(data));
-
+        if type == "raw":
+            return borg_request_raw(self.ip, self.port, protocol, protocol_version, json.dumps(data));
+        elif type == "aes":
+            return borg_request_aes(self.ip, self.port, protocol, protocol_version, json.dumps(data));
+        elif type == "rsa":
+            return borg_request_rsa(self.ip, self.port, protocol, protocol_version, json.dumps(data));
 class MQ(BorgCommuniction):
     def __init_(self, ip, start_port):
         self.__super.__init__(ip, start_port + 3);
     def register(self, group_name, queue_name, queue_step_name, input, execute_in, id="", flag="" ):
         input = json.dumps(input);
-        return self.request("REGIS", "000",  {"id" : id , "group_name" : group_name, "queue_name" : queue_name, "queue_step_name" : queue_step_name, "input" : input, "execute_in" : execute_in, "flag" : flag});
+        return self.request("REGIS", "000",  {"id" : id , "group_name" : group_name, "queue_name" : queue_name, "queue_step_name" : queue_step_name, "input" : input, "execute_in" : execute_in, "flag" : flag}, type="aes");
     def haswork(self):
         works = json.loads(  open(os.environ['ROOT'] + "/data/client/config.json").read());
-        return self.request("HASWO", "000",  {"id" : str(uuid.uuid4()) , "groups" : works["mq"]["groups"]});
+        return self.request("HASWO", "000",  {"id" : str(uuid.uuid4()) , "groups" : works["mq"]["groups"]}, type="aes");
 
 Thread(target=thread_load_config).start();
 Thread(target=thread_mestre     ).start();
