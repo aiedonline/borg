@@ -146,10 +146,10 @@ def envelop_make(protocol, version, message, uuid="88888888"):
         pass;
 
 
-def borg_response(sock, ip, protocol, version, text):
-    return borg_response_raw(sock, ip, protocol, version, text);
-def borg_request(ip, port, protocol, version, text):
-    return borg_request_raw(ip, port, protocol, version, text);
+#def borg_response(sock, ip, protocol, version, text):
+#    return borg_response_raw(sock, ip, protocol, version, text);
+#def borg_request(ip, port, protocol, version, text):
+#    return borg_request_raw(ip, port, protocol, version, text);
 
 def borg_wait(sock, address):
     expected_size = b""
