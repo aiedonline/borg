@@ -33,7 +33,7 @@ def thread_load_config():
 def thread_trabalhador(ip):
     mq = None;
     try:
-        mq = MQ(ip["ip"], ip["port"] + 3);
+        mq = MQ(ip["ip"], ip["port"]);
         works = mq.haswork();
         if len(works) > 0:
             #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
@@ -82,7 +82,7 @@ class BorgCommuniction():
             return borg_request_rsa(self.ip, self.port, protocol, protocol_version, json.dumps(data));
 class MQ(BorgCommuniction):
     def __init_(self, ip, start_port):
-        self.__super.__init__(ip, start_port + 3);
+        super().__init__(ip, start_port + 3);
     def register(self, group_name, queue_name, queue_step_name, input, execute_in, id="", flag="" ):
         input = json.dumps(input);
         return self.request("REGIS", "000",  {"id" : id , "group_name" : group_name, "queue_name" : queue_name, "queue_step_name" : queue_step_name, "input" : input, "execute_in" : execute_in, "flag" : flag}, type="aes");
@@ -90,11 +90,11 @@ class MQ(BorgCommuniction):
         works = json.loads(  open(os.environ['ROOT'] + "/data/client/config.json").read());
         return self.request("HASWO", "000",  {"id" : str(uuid.uuid4()) , "groups" : works["mq"]["groups"]}, type="aes");
 
-Thread(target=thread_load_config).start();
-Thread(target=thread_mestre     ).start();
+#Thread(target=thread_load_config).start();
+#Thread(target=thread_mestre     ).start();
 
-#mq = MQ("127.0.0.1", 8083);
-#print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
-#print(mq.haswork());
+mq = MQ("127.0.0.1", 8080);
+print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
+print(mq.haswork());
 
 
