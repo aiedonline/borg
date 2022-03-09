@@ -61,8 +61,9 @@ def borg_request_raw(ip, port, protocol, version, text):
 def borg_response_rsa(sock, ip, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
     array = rsa.encryptAll( envelop_make(protocol, version, text) );
-    sock.sendall(len(json.dumps(array).encode("utf-8")).to_bytes(8, 'big'))
-    sock.sendall(json.dumps(array).encode("utf-8"))
+    data_to_send = "rsa000" + json.dumps(array).encode("utf-8");
+    sock.sendall(len(data_to_send).to_bytes(8, 'big'));
+    sock.sendall(data_to_send);
 
 def borg_request_rsa(ip, port, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
@@ -70,24 +71,11 @@ def borg_request_rsa(ip, port, protocol, version, text):
     array = rsa.encryptAll( text );
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
     sock.connect((ip, port));
-    sock.sendall(len(json.dumps(array).encode("utf-8")).to_bytes(8, 'big'))
-    sock.sendall(json.dumps(array).encode("utf-8"))
+    data_to_send = "rsa000" + json.dumps(array).encode("utf-8");
+    sock.sendall(len(data_to_send).to_bytes(8, 'big'));
+    sock.sendall(data_to_send);
     # ---------------- retorno resposta -------------
-    expected_size = b""
-    while len(expected_size) < 8:
-        more_size = sock.recv(8 - len(expected_size))
-        if not more_size:
-            raise Exception("Short file length received")
-        expected_size += more_size
-    expected_size = int.from_bytes(expected_size, 'big')
-    packet = b""  
-    while len(packet) < expected_size:
-        buffer = sock.recv(expected_size - len(packet))
-        if not buffer:
-            raise Exception("Incomplete file received")
-        packet += buffer
-    rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server" , name_file_pem= "borg.pem" );
-    return envelop_split( rsa.decryptArray(  json.loads(packet.decode("utf-8")) ) );
+    return borg_wait(sock, ip);
 
 #def borg_wait_rsa(sock, address):
 #    expected_size = b""
