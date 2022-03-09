@@ -68,7 +68,7 @@ def borg_wait_raw(sock, address):
         packet += buffer
     return envelop_split( json.loads(packet.decode("utf-8")) );
 
-# ===================== CRYPTO =================================
+# ===================== RSA =================================
 
 def borg_response_rsa(sock, ip, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
@@ -174,9 +174,32 @@ def borg_response(sock, ip, protocol, version, text):
     return borg_response_raw(sock, ip, protocol, version, text);
 def borg_request(ip, port, protocol, version, text):
     return borg_request_raw(ip, port, protocol, version, text);
-def borg_wait(sock, address):
-    return borg_wait_raw(sock, address);
 
+def borg_wait(sock, address):
+    expected_size = b""
+    while len(expected_size) < 8:
+        more_size = sock.recv(8 - len(expected_size))
+        if not more_size:
+            raise Exception("Short file length received")
+        expected_size += more_size
+    expected_size = int.from_bytes(expected_size, 'big')
+    packet = b""  # Use bytes, not str, to accumulate
+    while len(packet) < expected_size:
+        buffer = sock.recv(expected_size - len(packet))
+        if not buffer:
+            raise Exception("Incomplete file received")
+        packet += buffer
+    packet = packet.decode("utf-8");
+    algoritm = packet[0:3];
+    version  = packet[3:6];
+    data = packet[6:];
+    if aloritm == "raw":
+        return envelop_split( json.loads(packet) );
+    elif algoritm == "rsa":
+        return envelop_split( rsa.decryptArray(  json.loads(packet) );
+    elif algoritm == "aes":
+        return envelop_split( aes.decrypt(  json.loads(packet) );                     
+        
 
 # ------------------------------- TRANSMISSÃO DE ARQUIVO PEM PÚBLICO RSA -------------
 # Usado para trocar PEM file
