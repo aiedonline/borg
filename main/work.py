@@ -107,7 +107,7 @@ class MQ(BorgCommuniction):
     def next(self, work_id, stdout):
         return self.request("NEXTW", "000",  {"id" : work_id, "stdout" : stdout}, type="raw");
     def err(self, work_id, status_code, stdout, sterr):
-        return self.request("ERRWO", "000",  {"id" : work_id,  status_code,  stdout, sterr}, type="raw");
+        return self.request("ERRWO", "000",  {"id" : work_id,  "status_code" : status_code,  "stdout" : stdout, "sterr" : sterr}, type="raw");
     
 Thread(target=thread_load_config).start();
 Thread(target=thread_mestre     ).start();
