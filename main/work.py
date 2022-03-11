@@ -30,19 +30,29 @@ def thread_load_config():
 
 # ---------------------------------- TRABALHADORES ---------------
 
-def thread_trabalhador(ip):
+def thread_work():
+    # {"id": "", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}
+    
+
+def thread_master(ip):
     mq = None;
     try:
         mq = MQ(ip["ip"], ip["port"]);
         works = mq.haswork();
         if len(works) > 0:
+            threads_work = [];
             #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
-            print("WORK", works);
-
+            buffer_works = json.loads(work[0]);
+            for buffer_work in buffer_works:
+                t = Thread(target=thread_work, args=(buyffer_work,));
+                t.start();
+                threads_works.append(t);
+            for t in thread_work:
+                t.join();
     finally:
         mq = None;
 
-def thread_mestre():
+def thread_server():
     global CONFIG;
     while True:
         if CONFIG != None:
@@ -51,7 +61,7 @@ def thread_mestre():
                     continue;
                 print("IP:", ip['ip']);
                 if os.path.exists(os.environ['ROOT'] + "/.client/.ssh/public_" + ip['ip'] + ".pem"):
-                    t = Thread(target=thread_trabalhador, args=(ip,));
+                    t = Thread(target=thread_master, args=(ip,));
                     t.start();
                     t.join(); # Aguardar resposta.......
         time.sleep(10);
