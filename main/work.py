@@ -35,9 +35,9 @@ def thread_work(work):
     p = Process(path, time_to_life=5,  interpreter="python3", required=[]);
     p.start(data_in=work);
     if p.status_code == 0:
-        mq.next(work["id"], p.stdout);
+        mq.next(work["id"], p.out);
     else:
-        mq.err(work["id"], p.status_code,  p.stdout, p.sterr ); 
+        mq.err(work["id"], p.status_code,  p.out, p.err ); 
 
 def thread_master(ip):
     mq = None;
