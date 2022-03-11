@@ -8,6 +8,7 @@ class Process():
         self.interpreter = interpreter;
         self.process_children = None;
         self.out = None; self.err = None;
+        self.status_code = None;
         #for dependence in required:
         #    self.__install_dependence(dependence);
     
@@ -18,7 +19,6 @@ class Process():
     
     def start(self, data_in={}):
         process_key = hashlib.md5(self.path.encode()).hexdigest();
-        print(process_key);
         with open("/tmp/"+ process_key +"_stdout.txt","w") as out, open("/tmp/"+ process_key +"_stderr.txt","w") as err:
             thread = Thread(target = self.__kill_time_to_life, args = ());
             #self.process_children = subprocess.Popen(args=[self.interpreter, self.path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE);
@@ -27,8 +27,9 @@ class Process():
             p_out = self.process_children.communicate(input=json.dumps( data_in ).encode('utf-8'))
             self.out = str(p_out[0], 'utf-8');
             self.err = str(p_out[1], 'utf-8');
-            print(self.out, self.err);
+            
             if self.process_children != None:
+                self.status_code = self.process_children.returncode;
                 if self.process_children.returncode != 0:
                     print(self.out, "\033[91m", self.err, "\033[0m");
                 if p_out[1].strip() :
