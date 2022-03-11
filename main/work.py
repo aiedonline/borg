@@ -30,9 +30,14 @@ def thread_load_config():
 
 # ---------------------------------- TRABALHADORES ---------------
 
-def thread_work():
+def thread_work(work):
     # {"id": "", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}
-    
+    p = Process(path, time_to_life=5,  interpreter="python3", required=[]);
+    p.start(data_in=work);
+    if p.status_code == 0:
+        mq.next(work["id"], p.stdout);
+    else:
+        mq.err(work["id"], p.status_code,  p.stdout, p.sterr ); 
 
 def thread_master(ip):
     mq = None;
@@ -99,9 +104,13 @@ class MQ(BorgCommuniction):
         # ('[{"id": "", "group_id": "", "queue_id": "", "queue_step_id": "", "input": "{}", "status_code": null, "name": "list", "next": "hellocrawler2", "script": "/hello/list.py", "need": "[]", "active": 1, "interpreter": "python3"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000028')
         works = json.loads(  open(os.environ['ROOT'] + "/data/client/config.json").read());
         return self.request("HASWO", "000",  {"id" : str(uuid.uuid4()) , "groups" : works["mq"]["groups"]}, type="raw");
-
-#Thread(target=thread_load_config).start();
-#Thread(target=thread_mestre     ).start();
+    def next(self, work_id, stdout):
+        return self.request("NEXTW", "000",  {"id" : work_id, "stdout" : stdout}, type="raw");
+    def err(self, work_id, status_code, stdout, sterr):
+        return self.request("ERRWO", "000",  {"id" : work_id,  status_code,  stdout, sterr}, type="raw");
+    
+Thread(target=thread_load_config).start();
+Thread(target=thread_mestre     ).start();
 
 #mq = MQ("127.0.0.1", 8080);
 #print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
