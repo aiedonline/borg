@@ -1,12 +1,11 @@
 import base64, os
 #from Crypto import Cipher;
-#from Crypto.PublicKey import RSA
-#from Crypto.Cipher import PKCS1_v1_5 as Cipher_PKCS1_v1_5
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5 as Cipher_PKCS1_v1_5
 #from Crypto.Cipher import PKCS1_OAEP;
 
-from Crypto.PublicKey import RSA
-from Crypto.Random import get_random_bytes
-from Crypto.Cipher import PKCS1_OAEP
+#from Crypto.PublicKey import RSA
+#from Crypto.Cipher import PKCS1_OAEP
 
 class RsaHelper():
     def __init__(self, path_to_pem=None, name_file_pem="bot.pem", create_private=False):
@@ -39,12 +38,12 @@ class RsaHelper():
                 with open(self.path_to_private, "rb") as k:
                     self.key_priv = RSA.importKey(k.read());
     def encrypt(self, data):
-        #cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
-        cipher = PKCS1_OAEP.new(self.key_pub);
+        cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
+        #cipher = PKCS1_OAEP.new(self.key_pub);
         return base64.b64encode( cipher.encrypt(data.encode()) ).decode();
     def encryptAll(self, data):
-        #cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
-        cipher = PKCS1_OAEP.new(self.key_pub);
+        cipher = Cipher_PKCS1_v1_5.new(self.key_pub);
+        #cipher = PKCS1_OAEP.new(self.key_pub);
         count_cript = 0;
         result = [];
         while count_cript + 100 < len(data):
@@ -52,12 +51,12 @@ class RsaHelper():
             count_cript += 100;
         return result;
     def decrypt(self, data):
-        #decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
-        decipher = PKCS1_OAEP.new(self.key_priv);
+        decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
+        #decipher = PKCS1_OAEP.new(self.key_priv);
         return decipher.decrypt(    base64.b64decode( data.encode()   ) , None).decode();
     def decryptArray(self, array):
-        #decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
-        decipher = PKCS1_OAEP.new(self.key_priv);
+        decipher = Cipher_PKCS1_v1_5.new(self.key_priv);
+        #decipher = PKCS1_OAEP.new(self.key_priv);
         result = "";
         for item in array:
             result += decipher.decrypt(    base64.b64decode( item.encode()   ) , None).decode();

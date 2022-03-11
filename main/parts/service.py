@@ -1,4 +1,10 @@
-import uuid;
+import uuid, sys, os;
+
+
+sys.path.insert(0, os.environ['ROOT']);
+
+from api.sock_util import *;
+
 
 
 class Service():
@@ -13,8 +19,9 @@ class Service():
 
     def dispacher_KEYNW_000(self, clientsocket, address, server_data):
         retorno = self.keynew();
-        borg_response_rsa(clientsocket, address, protocol, version,  json.dumps( {"session_id" : retorno[0], "key" : retorno[1] } ) );
+        borg_response_raw(clientsocket, address, "KEYNW", "000",  json.dumps( {"session_id" : retorno[0], "key" : retorno[1] } ) );
     def dispacher_KEYCL_000(self, clientsocket, address, server_data):
-        retorno = self.keynew();
+        #('{"session_id": "66a4e807-efde-42cd-a339-2b80e1a9233e"}', '111', '222', 'KEYCL', '000', '88888888', '7777777', '00000000000005')
+        server_data = json.loads(server_data[0]);    
         self.keyclose(server_data["session_id"]);
-        borg_response_rsa(clientsocket, address, protocol, version,  json.dumps( {"status" : True } ) );
+        borg_response_raw(clientsocket, address, "KEYCL", "000",  json.dumps( {"status" : True } ) );

@@ -12,8 +12,11 @@ from api.sock_util import *;
 from api.mysqlhelper import *;
 from main.parts.service import *;
 
+DEFAULT_TIME_WAIT_CLIENT = 5;
+
 class BorgMq(Service):
     def __init__(self, CONFIG):
+        super().__init__();
         self.semaphore = [];
         self.CONFIG = CONFIG;
         self.LOCAL = json.loads(open(os.environ['ROOT'] + "/main/parts/mq/config.json").read());
@@ -43,7 +46,7 @@ class BorgMq(Service):
                 traceback.print_exc();
     def dispacher(self, clientsocket, address):
         # ('6', '000', '000', '00AAA', '000', '10000000', '0000000', '00000000000000')
-        server_data = borg_wait(clientsocket, address);
+        server_data = borg_wait(clientsocket, address, local="server");
         class_method = getattr(self, "dispacher_" + server_data[3] + "_" + server_data[4]);
         result = class_method(clientsocket, address, server_data );
     
@@ -70,17 +73,20 @@ class BorgMq(Service):
         while self.semaphore[0] != my_thread_id:
             time.sleep(0.3); 
         try:
-            sql = "SELECT wor.* FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' order by wor.execute_in asc limit 1";
-            
+            sql = "SELECT wor.id, wor.group_id, wor.queue_id, wor.queue_step_id, wor.input, wor.status_code,      qus.name, qus.next, qus.script, qus.need, qus.active, qus.interpreter       FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id inner join mq_queue_step as qus on wor.queue_step_id = qus.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' order by wor.execute_in asc limit 1";
+            #mq_queue_step
+            #
+            #mq_work
+
             dados = my.datatable(sql, [] );
 
             for dado in dados:
                 sql = "UPDATE mq_work set execute_in = %s where id = %s ";
                 # TODO: tempo de 5 minutos tem que ser colocado na tabela mq_work
-                my.noquery(sql, [(datetime.datetime.utcnow() + datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S') ,dado["id"]]);
+                my.noquery(sql, [(datetime.datetime.utcnow() + datetime.timedelta(minutes=DEFAULT_TIME_WAIT_CLIENT)).strftime('%Y-%m-%d %H:%M:%S') ,dado["id"]]);
         finally:
             self.semaphore.pop(0);
-        borg_response(clientsocket, address, protocol, version,  json.dumps(dados, default=str) );
+        borg_response_raw(clientsocket, address, protocol, version,  json.dumps(dados, default=str) );
 
     def dispacher_REGIS_000(self, clientsocket, address, server_data):
         #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
@@ -100,7 +106,7 @@ class BorgMq(Service):
         execute_in = server_data["execute_in"];
 
         # invocando o método genérico
-        borg_response(clientsocket, address, protocol, version,  json.dumps( self._register(group_id, queue_id, queue_step_id, input, execute_in)) );
+        borg_response_raw(clientsocket, address, protocol, version,  json.dumps( self._register(group_id, queue_id, queue_step_id, input, execute_in)) );
     def _register(self, group_id, queue_id, queue_step_id, input, execute_in):
         my = My();
         try:

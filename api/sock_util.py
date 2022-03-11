@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json, socket, base64, time, traceback, os, sys, inspect, random
+from struct import pack
 import uuid;
 
 PROTOCOLS = [ "HELLO" ];
@@ -8,6 +9,7 @@ ROOT = os.environ['ROOT'];
 sys.path.insert(0,ROOT);
 
 from api.rsahelper import *;
+from api.aeshelper import *;
 
 TEMPO_ESPERA = 0.1;
 CONFIG_SERVER = json.loads(open(ROOT + "/data/server/config.json").read());
@@ -24,7 +26,7 @@ CONFIG_SERVER = json.loads(open(ROOT + "/data/server/config.json").read());
 # ===================== RAW ==============================
 def borg_response_raw(sock, ip, protocol, version, text):
     array = [envelop_make(protocol, version, text)];
-    data_to_send = "raw000" + json.dumps(array).encode("utf-8");
+    data_to_send = "raw000".encode("utf-8") + json.dumps(array).encode("utf-8");
     sock.sendall(len(data_to_send).to_bytes(8, 'big'));
     sock.sendall(data_to_send);
 
@@ -33,7 +35,7 @@ def borg_request_raw(ip, port, protocol, version, text):
     array = [text];
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
     sock.connect((ip, port));
-    data_to_send = "raw000" + json.dumps(array).encode("utf-8");
+    data_to_send = "raw000".encode("utf-8") + json.dumps(array).encode("utf-8");
     sock.sendall(len(data_to_send).to_bytes(8, 'big'));
     sock.sendall(data_to_send);
     # ---------------- retorno resposta -------------
@@ -61,7 +63,7 @@ def borg_request_raw(ip, port, protocol, version, text):
 def borg_response_rsa(sock, ip, protocol, version, text):
     rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= ip + ".pem" );
     array = rsa.encryptAll( envelop_make(protocol, version, text) );
-    data_to_send = "rsa000" + json.dumps(array).encode("utf-8");
+    data_to_send = "rsa000".encode("utf-8") + json.dumps(array).encode("utf-8");
     sock.sendall(len(data_to_send).to_bytes(8, 'big'));
     sock.sendall(data_to_send);
 
@@ -71,11 +73,27 @@ def borg_request_rsa(ip, port, protocol, version, text):
     array = rsa.encryptAll( text );
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
     sock.connect((ip, port));
-    data_to_send = "rsa000" + json.dumps(array).encode("utf-8");
+    data_to_send = "rsa000".encode("utf-8") + json.dumps(array).encode("utf-8");
     sock.sendall(len(data_to_send).to_bytes(8, 'big'));
     sock.sendall(data_to_send);
     # ---------------- retorno resposta -------------
-    return borg_wait(sock, ip);
+    expected_size = b""
+    while len(expected_size) < 8:
+        more_size = sock.recv(8 - len(expected_size))
+        if not more_size:
+            raise Exception("Short file length received")
+        expected_size += more_size
+    expected_size = int.from_bytes(expected_size, 'big')
+    packet = b""  
+    while len(packet) < expected_size:
+        buffer = sock.recv(expected_size - len(packet))
+        if not buffer:
+            raise Exception("Incomplete file received")
+        packet += buffer
+    rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server" , name_file_pem= "borg.pem" );
+    print(packet);
+    packet = "rsa000".decode("utf-8") + packet.decode("utf-8");
+    return envelop_split( rsa.decryptArray(  json.loads(packet) ) );
 
 #def borg_wait_rsa(sock, address):
 #    expected_size = b""
@@ -151,7 +169,7 @@ def envelop_make(protocol, version, message, uuid="88888888"):
 #def borg_request(ip, port, protocol, version, text):
 #    return borg_request_raw(ip, port, protocol, version, text);
 
-def borg_wait(sock, address):
+def borg_wait(sock, address, local="client"):
     expected_size = b""
     while len(expected_size) < 8:
         more_size = sock.recv(8 - len(expected_size))
@@ -169,12 +187,19 @@ def borg_wait(sock, address):
     algoritm = packet[0:3];
     version  = packet[3:6];
     data = packet[6:];
-    if aloritm == "raw":
-        return envelop_split( json.loads(packet) );
+
+    if algoritm == "raw":
+        return envelop_split( json.loads(data) );
     elif algoritm == "rsa":
-        return envelop_split( rsa.decryptArray(  json.loads(packet) );
+        rsa = None;
+        if local == "server":
+            rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.server", name_file_pem= "borg.pem" );
+        else:
+            rsa = RsaHelper(path_to_pem= os.environ['ROOT'] + "/.client", name_file_pem= address + ".pem" );
+        return envelop_split( rsa.decryptArray(  json.loads(data) ));
     elif algoritm == "aes":
-        return envelop_split( aes.decrypt(  json.loads(packet) );                     
+        aes = AesHelper();
+        return envelop_split( aes.decrypt(  json.loads(data) ));                     
         
 
 # ------------------------------- TRANSMISSÃO DE ARQUIVO PEM PÚBLICO RSA -------------
