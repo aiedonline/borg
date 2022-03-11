@@ -30,7 +30,7 @@ def thread_load_config():
 
 # ---------------------------------- TRABALHADORES ---------------
 
-def thread_work(work):
+def thread_work(work, mq):
     # {"id": "", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}
     p = Process(path, time_to_life=5,  interpreter="python3", required=[]);
     p.start(data_in=work);
@@ -49,7 +49,7 @@ def thread_master(ip):
             #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
             buffer_works = json.loads(work[0]);
             for buffer_work in buffer_works:
-                t = Thread(target=thread_work, args=(buyffer_work,));
+                t = Thread(target=thread_work, args=(buyffer_work, mq, ));
                 t.start();
                 threads_works.append(t);
             for t in thread_work:
