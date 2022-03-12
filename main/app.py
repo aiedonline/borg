@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from email.policy import default
 import os, sys, time, inspect, json, datetime, hashlib, shutil, psutil, traceback;
 import subprocess, argparse;
 
@@ -28,12 +27,6 @@ sys.path.insert(0,ROOT);
 
 from api.process import *;
 from api.rsahelper import *;
-#from main.work import BorgWork
-#from main.server import BorgServer
-#from api.socketUtil_info import *;
-#from api.localjson import *;
-#from api.log import *;
-#MACHINE = LocalJson(ROOT + "/data/machines.json");
 
 server_process = None;
 
