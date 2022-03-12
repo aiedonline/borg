@@ -10,6 +10,7 @@ ROOT = os.environ['ROOT'];
 sys.path.insert(0,ROOT);
 
 from api.sock_util import *;
+from api.process import *;
 
 CONFIG = None;
 
@@ -32,7 +33,7 @@ def thread_load_config():
 
 def thread_work(work, mq):
     # {"id": "", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}
-    p = Process(path, time_to_life=5,  interpreter="python3", required=[]);
+    p = Process(work['script'], time_to_life=5,  interpreter="python3", required=[]);
     p.start(data_in=work);
     if p.status_code == 0:
         mq.next(work["id"], p.out);
@@ -47,11 +48,11 @@ def thread_master(ip):
         if len(works) > 0:
             threads_work = [];
             #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
-            buffer_works = json.loads(work[0]);
+            buffer_works = json.loads(works[0]);
             for buffer_work in buffer_works:
-                t = Thread(target=thread_work, args=(buyffer_work, mq, ));
+                t = Thread(target=thread_work, args=(buffer_work, mq, ));
+                threads_work.append(t);
                 t.start();
-                threads_works.append(t);
             for t in thread_work:
                 t.join();
     finally:
@@ -113,7 +114,7 @@ class MQ(BorgCommuniction):
         return self.request("ERRWO", "000",  {"id" : work_id,  "status_code" : status_code,  "stdout" : stdout, "sterr" : sterr}, type="raw");
     
 Thread(target=thread_load_config).start();
-Thread(target=thread_mestre     ).start();
+Thread(target=thread_server     ).start();
 
 #mq = MQ("127.0.0.1", 8080);
 #print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));

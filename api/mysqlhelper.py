@@ -33,5 +33,27 @@ class My():
         cursor.execute(sql, values);
         self.connection.commit();
         return cursor.lastrowid;
+    def noquerys(self, sqls, valuess):
+        cursor = None;
+        ids = [];
+        try:
+            self.connection.autocommit = False;
+            cursor = self.connection.cursor();
+            for i in range(len(sqls)):
+                sql = sqls[i];
+                values = valuess[i];
+                cursor.execute(sql, values);
+                ids.append(cursor.lastrowid);
+            self.connection.commit();
 
+        except mysql.connector.Error as error:
+            self.connection.rollback()
+        finally:
+            # closing database connection.
+            if self.connection.is_connected():
+                if cursor != None:
+                    cursor.close();
+                #self.connection.close()
+                #print("connection is closed")
+        return ids;
         

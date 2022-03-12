@@ -13,6 +13,7 @@ from api.mysqlhelper import *;
 from main.parts.service import *;
 
 DEFAULT_TIME_WAIT_CLIENT = 5;
+CREATOR_DATE = '1979-06-12 09:04:00';
 
 class BorgMq(Service):
     def __init__(self, CONFIG):
@@ -57,6 +58,19 @@ class BorgMq(Service):
             self.semaphore.pop(0);
         borg_response_raw(clientsocket, address, protocol, version,  json.dumps(dados, default=str) );
 
+    def dispacher_NEXTW_000(self, clientsocket, address, server_data):
+        protocol = "NEXTW"; version = "000";
+        server_data = json.loads(server_data[0]);
+        my = My();
+        queue_step_dt = my.datatable("SELECT * FROM mq_queue_step where id= %s ", [  server_data["queue_step_id"] ] ); 
+        
+        # Criando variáveis
+        queue_step_next = queue_step_dt[0]["next"]; 
+        sql = "UPDATE mq_work set queue_step_id= %s, input= %s, execute_in= '"+ CREATOR_DATE +"' where id= %s";
+        retorno = my.noquery(sql, [queue_step_next, ?????  ,server_data["id"]]);
+        # invocando o método genérico
+        borg_response_raw(clientsocket, address, protocol, version,  json.dumps( retorno ) );
+        
     def dispacher_REGIS_000(self, clientsocket, address, server_data):
         #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
         protocol = "REGIS"; version = "000";
@@ -66,7 +80,7 @@ class BorgMq(Service):
         group_dt =      my.datatable("select * from mq_group where name = %s", [ server_data["group_name"] ] );
         queue_dt =      my.datatable("select * from mq_queue where name = %s", [ server_data["queue_name"] ] ); 
         queue_step_dt = my.datatable("SELECT * FROM mq_queue_step where mq_queue_id= %s and name = %s", [ queue_dt[0]["id"] , server_data["queue_step_name"]] ); 
-        
+        ????
         # Criando variáveis
         group_id = group_dt[0]["id"]; 
         queue_id = queue_dt[0]["id"];
@@ -83,6 +97,7 @@ class BorgMq(Service):
             id = str( uuid.uuid4() );
             values = [id, group_id, queue_id, queue_step_id, input, execute_in];
             retorno = my.noquery(sql, values);
+            noquerys(self, sqls, valuess):??????? auqi....
             return {"status" : True, "return" : retorno};
         except Exception as e:
             traceback.print_exc();
