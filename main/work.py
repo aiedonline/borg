@@ -61,6 +61,7 @@ def thread_server():
     global CONFIG;
     while True:
         if CONFIG != None:
+            threads_server = [];
             for ip in CONFIG["ips"]:
                 if not ip['active']:
                     continue;
@@ -68,7 +69,9 @@ def thread_server():
                 if os.path.exists(os.environ['ROOT'] + "/.client/.ssh/public_" + ip['ip'] + ".pem"):
                     t = Thread(target=thread_master, args=(ip,));
                     t.start();
-                    t.join(); # Aguardar resposta.......
+                    threads_server.append(t);
+            for t in threads_server:
+                t.join(); # Aguardar resposta.......
         time.sleep(10);
 
 class BorgCommuniction():
