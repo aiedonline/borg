@@ -12,18 +12,22 @@ class Service():
         self.CONFIG = CONFIG;
         self.LOCAL = json.loads(open(os.environ['ROOT'] + "/main/parts/"+ module_label +"/config.json").read());
         print("\t...::: Módulo " +  module_label + ":" , self.CONFIG['port'] + self.LOCAL["port"], ":::...");
-        try:
-            self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
-            self.serversocket.bind(('0.0.0.0', self.CONFIG['port'] + self.LOCAL["port"]));
-            self.serversocket.listen(1500);
-            self.run();
-        except KeyboardInterrupt:
-            print( 'Interrupted');
-            sys.exit(0);
-        except:
-            traceback.print_exc();
-            sys.stdout.write("Falha ao abrir portas.")
-            os._exit(1);
+        while True:
+            try:
+                self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
+                self.serversocket.bind(('0.0.0.0', self.CONFIG['port'] + self.LOCAL["port"]));
+                self.serversocket.listen(1500);
+                self.run();
+                break;
+            except KeyboardInterrupt:
+                print( 'Interrupted');
+                sys.exit(0);
+            except:
+                sys.stdout.write("Falha ao abrir a porta do servico: " + self.module_label + ", aguardando 60 segundos para nova tentativa...." );
+                #traceback.print_exc();
+                #sys.stdout.write("Falha ao abrir portas.")
+                #os._exit(1);
+                time.sleep(60);
     def run(self):
         while True:
             try:
