@@ -30,31 +30,39 @@ def thread_load_config():
         time.sleep(60);
 
 # ---------------------------------- TRABALHADORES ---------------
-
 def thread_work(work, mq):
     # {"id": "", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}
-    p = Process(work['script'], time_to_life=5,  interpreter="python3", required=[]);
-    p.start(data_in=work);
-    if p.status_code == 0:
-        mq.next(work["id"], p.out);
-    else:
+    try:
+        print("Sscript: ", ROOT + "/tmp/project/" +  work['script']);
+        p = Process(ROOT + "/tmp/project/" +  work['script'], time_to_life=5,  interpreter="python3", required=[]);
+        print("chamando.....");
+        p.start(data_in=work);
+        print("Retorno do processo: ", p.status_code);
+        if p.status_code == 0:
+            mq.next(work["id"], work["next"], p.out);
+        else:
+            raise Exception('Status do projeto é diferente de zero.');
+    except:
         mq.err(work["id"], p.status_code,  p.out, p.err ); 
 
 def thread_master(ip):
     mq = None;
     try:
         mq = MQ(ip["ip"], ip["port"]);
-        works = mq.haswork();
-        if len(works) > 0:
-            threads_work = [];
-            #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
-            buffer_works = json.loads(works[0]);
-            for buffer_work in buffer_works:
-                t = Thread(target=thread_work, args=(buffer_work, mq, ));
-                threads_work.append(t);
-                t.start();
-            for t in thread_work:
-                t.join();
+        while True:
+            buffer_works = mq.haswork();
+            threads = [];
+            if len(buffer_works) > 0:
+                threads_work = [];
+                #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
+                for buffer_work in buffer_works:
+                    b = Base(ip["ip"], ip["port"]);
+                    b.project_update([buffer_work['group_id']]);
+                    t = Thread(target=thread_work, args=(buffer_work, mq, ));
+                    threads.append(t);
+                    t.start();
+                for t in threads:
+                    t.join();
     finally:
         mq = None;
 
@@ -93,11 +101,37 @@ class BorgCommuniction():
         
     def request(self, protocol, protocol_version,  data, type="raw"):
         if type == "raw":
-            return borg_request_raw(self.ip, self.port, protocol, protocol_version, json.dumps(data));
+            return json.loads( borg_request_raw(self.ip, self.port, protocol, protocol_version, json.dumps(data))[0] );
         #elif type == "aes":
         #    return borg_request_aes(self.ip, self.port, protocol, protocol_version, json.dumps(data));
         elif type == "rsa":
             return borg_request_rsa(self.ip, self.port, protocol, protocol_version, json.dumps(data));
+
+class Base(BorgCommuniction):
+    def __init__(self, ip, start_port):
+        super().__init__(ip, start_port + 1);
+    
+    def file_update(self, file, md5):
+        hash_file = None;
+        if os.path.exists(ROOT + "/tmp/" + file):
+            hash_file = hashlib.md5( open(ROOT + "/tmp/" + file).read().encode() ).hexdigest();
+        if md5 != hash_file:
+            path_dir = ROOT + "/tmp/" + file[ : file.rfind("/") ];
+            if not os.path.exists(path_dir):
+                os.makedirs(path_dir);
+            with open( ROOT + "/tmp/" + file ,"w") as f:
+                print('Será baixado: ', "/tmp/" + file);
+                f.write(self.get_file(file));
+                f.close();
+    def get_file(self, file ):
+        return self.request("GETFI", "000",  {"file" : file}, type="raw")['file'];
+    
+    def project_update(self, project_name ):
+        files = self.request("PROFI", "000",  {"name" : project_name}, type="raw");
+        for file in files:
+            self.file_update(file['file'], file['md5']);
+        return files;
+    
 class MQ(BorgCommuniction):
     def __init__(self, ip, start_port):
         super().__init__(ip, start_port + 3);
@@ -108,16 +142,23 @@ class MQ(BorgCommuniction):
         # ('[{"id": "", "group_id": "", "queue_id": "", "queue_step_id": "", "input": "{}", "status_code": null, "name": "list", "next": "hellocrawler2", "script": "/hello/list.py", "need": "[]", "active": 1, "interpreter": "python3"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000028')
         works = json.loads(  open(os.environ['ROOT'] + "/data/client/config.json").read());
         return self.request("HASWO", "000",  {"id" : str(uuid.uuid4()) , "groups" : works["mq"]["groups"]}, type="raw");
-    def next(self, work_id, stdout):
-        return self.request("NEXTW", "000",  {"id" : work_id, "stdout" : stdout}, type="raw");
+    def next(self, work_id, queue_step_id, stdout):
+        print("Next: ", work_id);
+        return self.request("NEXTW", "000",  {"id" : work_id, "stdout" : stdout, "queue_step_id" : queue_step_id}, type="raw");
     def err(self, work_id, status_code, stdout, sterr):
         return self.request("ERRWO", "000",  {"id" : work_id,  "status_code" : status_code,  "stdout" : stdout, "sterr" : sterr}, type="raw");
-    
+
 Thread(target=thread_load_config).start();
 Thread(target=thread_server     ).start();
 
+#ba = Base("127.0.0.1", 8080);
+#print(ba.project_update(["hello"]));
+
+
 #mq = MQ("127.0.0.1", 8080);
 #print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
-#print(mq.haswork());
-
+#works = mq.haswork();
+#print(works);
+#for work in works:
+#    mq.next(work['id'], work['next'], "");
 

@@ -19,32 +19,31 @@ class Process():
     
     def start(self, data_in={}):
         process_key = hashlib.md5(self.path.encode()).hexdigest();
-        with open("/tmp/"+ process_key +"_stdout.txt","w") as out, open("/tmp/"+ process_key +"_stderr.txt","w") as err:
-            thread = Thread(target = self.__kill_time_to_life, args = ());
-            #self.process_children = subprocess.Popen(args=[self.interpreter, self.path], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE);
-            self.process_children = subprocess.Popen(args=[self.interpreter, self.path]);
-            thread.start();
-            p_out = self.process_children.communicate(input=json.dumps( data_in ).encode('utf-8'))
+        thread = Thread(target = self.__kill_time_to_life, args = ());
+        self.process_children = subprocess.Popen(args=[self.interpreter, self.path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE);
+        thread.start();
+        p_out = self.process_children.communicate(input=json.dumps( data_in ).encode('utf-8'))
+        if p_out[0] != None:
             self.out = str(p_out[0], 'utf-8');
+        if p_out[1] != None:
             self.err = str(p_out[1], 'utf-8');
-            
-            if self.process_children != None:
-                self.status_code = self.process_children.returncode;
-                if self.process_children.returncode != 0:
-                    print(self.out, "\033[91m", self.err, "\033[0m");
-                if p_out[1].strip() :
-                    err.write(self.err);
-                    err.close();
-                if p_out[0].strip() :
-                    out.write(self.out);
-                    out.close();
-            else:
-                err.write("Saída por excesso de tempo de vida.");
-                err.close();
+        if self.process_children != None:
+            self.status_code = self.process_children.returncode;
+            #if self.process_children.returncode != 0:
+            #    print(self.out, "\033[91m", self.err, "\033[0m");
+            #if p_out[1].strip() :
+            #    err.write(self.err);
+            #    err.close();
+            #if p_out[0].strip() :
+            #    out.write(self.out);
+            #    out.close();
     def close(self):
-        #self.process_children.kill();
-        os.kill(self.process_children.pid, signal.SIGINT);
-        self.process_children = None;
+        self.process_children.kill();
+        try:
+            os.kill(self.process_children.pid, signal.SIGINT);
+            self.process_children = None;
+        except:
+            print("Não foi possível fechar processo filho.");
     
     def __install_dependence(self, dependence):
         sub = subprocess.run([self.interpreter, os.environ['ROOT'] + "/main/api/process_module_exists.py", dependence['name']]);

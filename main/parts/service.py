@@ -1,8 +1,8 @@
-import uuid, sys, os;
-
+import uuid, sys, os, threading;
 
 sys.path.insert(0, os.environ['ROOT']);
 
+from threading import Thread;
 from api.sock_util import *;
 
 class Service():
@@ -17,22 +17,21 @@ class Service():
                 self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
                 self.serversocket.bind(('0.0.0.0', self.CONFIG['port'] + self.LOCAL["port"]));
                 self.serversocket.listen(1500);
-                self.run();
+                Thread(target=self.run).start();
+                #self.run();
                 break;
             except KeyboardInterrupt:
                 print( 'Interrupted');
                 sys.exit(0);
             except:
                 sys.stdout.write("Falha ao abrir a porta do servico: " + self.module_label + ", aguardando 60 segundos para nova tentativa...." );
-                #traceback.print_exc();
-                #sys.stdout.write("Falha ao abrir portas.")
-                #os._exit(1);
                 time.sleep(60);
     def run(self):
         while True:
             try:
                 (clientsocket, address) = self.serversocket.accept();
-                Thread(target=self.dispacher, args=(clientsocket, address[0], )).start();
+                t = Thread(target=self.dispacher, args=(clientsocket, address[0], ));
+                t.start();
             except KeyboardInterrupt:
                 print( 'Interrupted');
                 sys.exit(0);
@@ -41,6 +40,7 @@ class Service():
     def dispacher(self, clientsocket, address):
         # ('6', '000', '000', '00AAA', '000', '10000000', '0000000', '00000000000000')
         server_data = borg_wait(clientsocket, address, local="server");
+        print("Função: ", "dispacher_" + server_data[3] + "_" + server_data[4]);
         class_method = getattr(self, "dispacher_" + server_data[3] + "_" + server_data[4]);
         result = class_method(clientsocket, address, server_data );
     

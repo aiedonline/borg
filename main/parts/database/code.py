@@ -8,8 +8,9 @@ sys.path.insert(0, os.environ['ROOT']);
 
 from threading import Thread;
 from api.sock_util import *;
+from main.parts.service import *;
 
-class BorgDatabase():
+class BorgDatabase(Service):
     def __init__(self, CONFIG):
         super().__init__(CONFIG, "database");
     
