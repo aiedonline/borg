@@ -22,7 +22,7 @@ class Process():
         thread = Thread(target = self.__kill_time_to_life, args = ());
         self.process_children = subprocess.Popen(args=[self.interpreter, self.path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE);
         thread.start();
-        p_out = self.process_children.communicate(input=json.dumps( data_in ).encode('utf-8'))
+        p_out = self.process_children.communicate(input=(json.dumps( data_in ) + "\n").encode('utf-8'));
         if p_out[0] != None:
             self.out = str(p_out[0], 'utf-8');
         if p_out[1] != None:

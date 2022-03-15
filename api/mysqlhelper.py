@@ -2,14 +2,21 @@ import mysql.connector,json, os;
 from mysql.connector.cursor import MySQLCursorPrepared
 
 class My():
-    def __init__(self, host=None, database=None,  user=None, password=None):
-        self.host = host; self.database = database; self.user = user; self.password = password;
-        if self.host == None:
-            CONFIG = json.loads( open(os.environ['ROOT'] + "/data/server/database.json", "r").read() );
+    def __init__(self, host=None, database=None,  user=None, password=None, file=None):
+        if file == None:
+            self.host = host; self.database = database; self.user = user; self.password = password;
+            if self.host == None:
+                CONFIG = json.loads( open(os.environ['ROOT'] + "/data/server/database.json", "r").read() );
+                self.host = CONFIG['host'];
+                self.database = CONFIG['database'];
+                self.user = CONFIG['user'];
+                self.password = CONFIG['password'];
+        else:
+            CONFIG = json.loads( open(os.environ['ROOT'] + "/main/parts/database/data/" + file + ".json", "r").read() );
             self.host = CONFIG['host'];
             self.database = CONFIG['database'];
             self.user = CONFIG['user'];
-            self.password = CONFIG['password'];
+            self.password = CONFIG['password'];            
         self.connection = mysql.connector.connect( host=self.host, user=self.user, password= self.password, database= self.database );
     def process_meta(self, tables):
         print("Criando tabelas e colunas.");

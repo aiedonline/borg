@@ -45,11 +45,11 @@ class BorgMq(Service):
         while self.semaphore[0] != my_thread_id:
             time.sleep(0.3); 
         try:
-            sql = "SELECT wor.id, wor.group_id, wor.queue_id, wor.queue_step_id, wor.status_code, qus.name, qus.next, qus.script, qus.need, qus.active, qus.interpreter       FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id inner join mq_queue_step as qus on wor.queue_step_id = qus.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' order by wor.execute_in asc limit 1";
+            sql = "SELECT wor.id, wor.group_id, wor.queue_id, wor.queue_step_id, wor.status_code, qus.name, qus.next, qus.script, qus.need, qus.active, qus.interpreter       FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id inner join mq_queue_step as qus on wor.queue_step_id = qus.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' and qus.active = 1 order by wor.execute_in asc limit 1";
             dados = my.datatable(sql, [] );
             for dado in dados:
                 sql = "UPDATE mq_work set execute_in = %s where id = %s ";
-                input_dt =      my.datatable("select * from mq_work_input where work_id = %s order by id desc", [ dado["id"] ] );
+                input_dt =      my.datatable("select * from mq_work_input where work_id = %s order by id asc", [ dado["id"] ] );
                 # TODO: tempo de 5 minutos tem que ser colocado na tabela mq_work
                 print(input_dt);
                 dado['input'] = input_dt;
@@ -68,6 +68,17 @@ class BorgMq(Service):
         retorno = my.noquery( sql1, values1 );
         borg_response_raw(clientsocket, address, protocol, version,  json.dumps( retorno ) );
     
+    def dispacher_INPNW_000(self, clientsocket, address, server_data):
+        # input
+        # work_id
+        protocol = "NEXTW"; version = "000";
+        server_data = json.loads(server_data[0]);
+        my = My();
+        sql2 = "INSERT INTO mq_work_input(input, date_input, work_id) values(%s, %s, %s)";
+        values2 = [server_data['input'], datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), server_data['work_id']];
+        retorno = my.noquery(sql2, values2 );
+        borg_response_raw(clientsocket, address, protocol, version,  json.dumps( retorno ) );
+
     def dispacher_NEXTW_000(self, clientsocket, address, server_data):
         # queue_step_id
         # id
