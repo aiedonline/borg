@@ -2,5 +2,5 @@
         {"ip" : "127.0.0.1", "port" : 8080, "active" : true},
         {"ip" : "54.37.137.117", "port" : 8080, "active" : false}
     ],
-    "mq" : {"groups" : ["hello"]}
+    "mq" : {"groups" : ["hello", "ent_country"]}
 }

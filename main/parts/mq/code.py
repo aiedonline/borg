@@ -18,6 +18,7 @@ CREATOR_DATE = '1979-06-12 09:04:00';
 class BorgMq(Service):
     def __init__(self, CONFIG):
         self.semaphore = [];
+        self.my = My();
         super().__init__(CONFIG, "mq");
         
     
@@ -85,7 +86,7 @@ class BorgMq(Service):
         protocol = "NEXTW"; version = "000";
         server_data = json.loads(server_data[0]);
         my = My();
-        sql = "SELECT wok.id, nex.`next` as `next` FROM mq_work as wok left join mq_queue_step as nex on wok.queue_step_id = nex.id where wok.id = %s "
+        sql = "SELECT wok.id, nex.id as `next` FROM mq_work as wok left join mq_queue_step as nex on wok.queue_step_id = nex.id where wok.id = %s "
         queue_step_next_dt = my.datatable(sql, [server_data["id"]])[0];
         print(queue_step_next_dt);
         if queue_step_next_dt["next"]:
@@ -117,11 +118,11 @@ class BorgMq(Service):
         #   execute_in
         protocol = "REGIS"; version = "000";
         server_data = json.loads(server_data[0]);
-        my = My();
+        #my = My();
         # Carregando dados para FK
-        group_dt =      my.datatable("select * from mq_group where name = %s", [ server_data["group_name"] ] );
-        queue_dt =      my.datatable("select * from mq_queue where name = %s", [ server_data["queue_name"] ] ); 
-        queue_step_dt = my.datatable("SELECT * FROM mq_queue_step where mq_queue_id= %s and name = %s", [ queue_dt[0]["id"] , server_data["queue_step_name"]] ); 
+        group_dt =      self.my.datatable("select * from mq_group where name = %s", [ server_data["group_name"] ] );
+        queue_dt =      self.my.datatable("select * from mq_queue where name = %s", [ server_data["queue_name"] ] ); 
+        queue_step_dt = self.my.datatable("SELECT * FROM mq_queue_step where mq_queue_id= %s and name = %s", [ queue_dt[0]["id"] , server_data["queue_step_name"]] ); 
         
         group_id = group_dt[0]["id"]; 
         queue_id = queue_dt[0]["id"];
@@ -131,8 +132,9 @@ class BorgMq(Service):
 
         # invocando o método genérico
         borg_response_raw(clientsocket, address, protocol, version,  json.dumps( self._register(group_id, queue_id, queue_step_id, input, execute_in)) );
+    
     def _register(self, group_id, queue_id, queue_step_id, input, execute_in):
-        my = My();
+        
         try:
             id = str( uuid.uuid4() );
             sql1 = "INSERT INTO mq_work(id, group_id, queue_id, queue_step_id, execute_in) values(%s, %s, %s, %s, %s)";
@@ -141,7 +143,7 @@ class BorgMq(Service):
             sql2 = "INSERT INTO mq_work_input(input, date_input, work_id) values(%s, %s, %s)";
             values2 = [input, datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), id];
 
-            retorno = my.noquerys([sql1, sql2], [values1, values2]);
+            retorno = self.my.noquerys([sql1, sql2], [values1, values2]);
             return {"status" : True, "return" : retorno};
         except Exception as e:
             traceback.print_exc();

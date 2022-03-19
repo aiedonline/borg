@@ -34,6 +34,7 @@ def borg_request_raw(ip, port, protocol, version, text):
     text = envelop_make(protocol, version, text);
     array = [text];
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
+    sock.settimeout(15);
     sock.connect((ip, port));
     data_to_send = "raw000".encode("utf-8") + json.dumps(array).encode("utf-8");
     sock.sendall(len(data_to_send).to_bytes(8, 'big'));

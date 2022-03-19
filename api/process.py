@@ -20,7 +20,8 @@ class Process():
     def start(self, data_in={}):
         process_key = hashlib.md5(self.path.encode()).hexdigest();
         thread = Thread(target = self.__kill_time_to_life, args = ());
-        self.process_children = subprocess.Popen(args=[self.interpreter, self.path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE);
+        #self.process_children = subprocess.Popen(args=[self.interpreter, self.path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE);
+        self.process_children = subprocess.Popen(args=[self.interpreter, self.path], stdin=subprocess.PIPE);
         thread.start();
         p_out = self.process_children.communicate(input=(json.dumps( data_in ) + "\n").encode('utf-8'));
         if p_out[0] != None:

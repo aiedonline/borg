@@ -6,6 +6,7 @@ os.environ['ROOT'] = "/opt/borg"; #os.path.abspath("./");
 os.environ['SSHC'] = os.environ['ROOT'] + "/.client";
 os.environ['SSHS'] = os.environ['ROOT'] + "/.server";
 
+
 ROOT = os.environ['ROOT'];
 sys.path.insert(0,ROOT);
 
@@ -40,7 +41,12 @@ def thread_work(work, mq, ip):
         if p.status_code == 0:
             mq.next(work["id"], work["next"], p.out);
         else:
+            print(p.out, p.err);
+            print("Status:" , p.status_code);
+            p = None;
+            time.sleep(60);
             raise Exception('Status do projeto é diferente de zero.');
+        
     except:
         mq.err(work["id"], p.status_code,  p.out, p.err ); 
 
@@ -60,8 +66,10 @@ def thread_master(ip):
                     t = Thread(target=thread_work, args=(buffer_work, mq, ip,  ));
                     threads.append(t);
                     t.start();
-                for t in threads:
                     t.join();
+                #for t in threads:
+                #    t.join();
+            time.sleep(5);
     finally:
         mq = None;
 
@@ -88,9 +96,9 @@ Thread(target=thread_server     ).start();
 #ba = Base("127.0.0.1", 8080);
 #print(ba.project_update(["hello"]));
 
-print("hello");
-mq = MQ("127.0.0.1", 8080);
-print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
+#print("hello");
+#mq = MQ("127.0.0.1", 8080);
+#print(mq.register("hello", "Hello Crawler", "list", {}, "2000-01-01 00:00:00"));
 #works = mq.haswork();
 #print(works);
 #for work in works:
