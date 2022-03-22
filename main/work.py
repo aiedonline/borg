@@ -41,12 +41,9 @@ def thread_work(work, mq, ip):
         if p.status_code == 0:
             mq.next(work["id"], work["next"], p.out);
         else:
-            print(p.out, p.err);
-            print("Status:" , p.status_code);
             p = None;
             time.sleep(60);
             raise Exception('Status do projeto é diferente de zero.');
-        
     except:
         mq.err(work["id"], p.status_code,  p.out, p.err ); 
 
@@ -54,6 +51,7 @@ def thread_master(ip):
     mq = None;
     try:
         mq = MQ(ip["ip"], ip["port"]);
+        base_socket = Base(ip["ip"], ip["port"]);
         while True:
             buffer_works = mq.haswork();
             threads = [];
@@ -61,14 +59,12 @@ def thread_master(ip):
                 threads_work = [];
                 #WORK: ('[{"id": "837cae6d-4e49-440d-84d7-f614491918b6", "group_id": "hello", "queue_id": "hellocrawler", "queue_step_id": "hellocrawler1", "input": "{}", "err": null, "output": null, "status_code": null, "execute_in": "2022-03-08 11:54:36"}]', '111', '222', 'HASWO', '000', '88888888', '7777777', '00000000000023')
                 for buffer_work in buffer_works:
-                    b = Base(ip["ip"], ip["port"]);
-                    b.project_update([buffer_work['group_id']]);
+                    base_socket.project_update([buffer_work['group_id']]);
                     t = Thread(target=thread_work, args=(buffer_work, mq, ip,  ));
                     threads.append(t);
                     t.start();
+                for t in threads:
                     t.join();
-                #for t in threads:
-                #    t.join();
             time.sleep(5);
     finally:
         mq = None;

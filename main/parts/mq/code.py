@@ -10,6 +10,7 @@ sys.path.insert(0, os.environ['ROOT']);
 from threading import Thread;
 from api.sock_util import *;
 from api.mysqlhelper import *;
+from api.jsonhelp import *;
 from main.parts.service import *;
 
 DEFAULT_TIME_WAIT_CLIENT = 5;
@@ -18,9 +19,15 @@ CREATOR_DATE = '1979-06-12 09:04:00';
 class BorgMq(Service):
     def __init__(self, CONFIG):
         self.semaphore = [];
+        self.transition = os.environ['ROOT'] + "/transition/mq/";
         self.my = My();
         super().__init__(CONFIG, "mq");
+        self.init_workspace();
+        Thread(target=self.thread_register).start();
         
+    def init_workspace(self):
+        if not os.path.exists(self.transition):
+            os.makedirs(self.transition);
     
     def dispacher_HASWO_000(self, clientsocket, address, server_data):
         #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
@@ -46,13 +53,12 @@ class BorgMq(Service):
         while self.semaphore[0] != my_thread_id:
             time.sleep(0.3); 
         try:
-            sql = "SELECT wor.id, wor.group_id, wor.queue_id, wor.queue_step_id, wor.status_code, qus.name, qus.next, qus.script, qus.need, qus.active, qus.interpreter       FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id inner join mq_queue_step as qus on wor.queue_step_id = qus.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' and qus.active = 1 order by wor.execute_in asc limit 1";
+            sql = "SELECT wor.id, wor.group_id, wor.queue_id, wor.queue_step_id, wor.status_code, qus.name, qus.next, qus.script, qus.need, qus.active, qus.interpreter       FROM mq_work as wor  inner join mq_group as gro on wor.group_id = gro.id inner join mq_queue_step as qus on wor.queue_step_id = qus.id where gro.name in ( "+ groups_id +" )  and wor.execute_in < '"+ datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') +"' and qus.active = 1 order by wor.execute_in asc limit 5 ";
             dados = my.datatable(sql, [] );
             for dado in dados:
                 sql = "UPDATE mq_work set execute_in = %s where id = %s ";
                 input_dt =      my.datatable("select * from mq_work_input where work_id = %s order by id asc", [ dado["id"] ] );
                 # TODO: tempo de 5 minutos tem que ser colocado na tabela mq_work
-                print(input_dt);
                 dado['input'] = input_dt;
                 my.noquery(sql, [(datetime.datetime.utcnow() + datetime.timedelta(minutes=DEFAULT_TIME_WAIT_CLIENT)).strftime('%Y-%m-%d %H:%M:%S') ,dado["id"]]);
         finally:
@@ -86,16 +92,16 @@ class BorgMq(Service):
         protocol = "NEXTW"; version = "000";
         server_data = json.loads(server_data[0]);
         my = My();
-        sql = "SELECT wok.id, nex.id as `next` FROM mq_work as wok left join mq_queue_step as nex on wok.queue_step_id = nex.id where wok.id = %s "
+        sql = "SELECT wok.id, nex.`next` FROM mq_work as wok left join mq_queue_step as nex on wok.queue_step_id = nex.id where wok.id = %s "
         queue_step_next_dt = my.datatable(sql, [server_data["id"]])[0];
-        print(queue_step_next_dt);
+        print("queue_step_next_dt:", queue_step_next_dt);
         if queue_step_next_dt["next"]:
             #queue_step_dt = my.datatable("SELECT * FROM mq_queue_step where id= %s ", [  server_data["queue_step_id"] ] ); 
             # Criando variáveis
             #queue_step_next = queue_step_dt[0]["next"]; 
             sql1 = "UPDATE mq_work set queue_step_id= %s, execute_in= '"+ CREATOR_DATE +"' where id= %s";
             values1 = [queue_step_next_dt["next"], server_data["id"]];
-
+            print(sql1, values1);
             #sql2 = "INSERT INTO mq_work_input(input, date_input, work_id) values(%s, %s, %s)";
             #values2 = [server_data["input"], datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), server_data["id"]];
 
@@ -106,33 +112,56 @@ class BorgMq(Service):
             values1 = [server_data["id"]];
             sql2 = "delete from mq_work_input  where work_id= %s";
             values2 = [server_data["id"]];
-            retorno = my.noquerys([sql1, sql2],[values1, values2] );
+            retorno = my.noquerys([sql2, sql1],[values2, values1] );
         borg_response_raw(clientsocket, address, protocol, version,  json.dumps( retorno ) );
         
     def dispacher_REGIS_000(self, clientsocket, address, server_data):
-        #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
-        #   group_name
-        #   queue_step_name
-        #   queue_name
-        #   input
-        #   execute_in
-        protocol = "REGIS"; version = "000";
-        server_data = json.loads(server_data[0]);
-        #my = My();
-        # Carregando dados para FK
-        group_dt =      self.my.datatable("select * from mq_group where name = %s", [ server_data["group_name"] ] );
-        queue_dt =      self.my.datatable("select * from mq_queue where name = %s", [ server_data["queue_name"] ] ); 
-        queue_step_dt = self.my.datatable("SELECT * FROM mq_queue_step where mq_queue_id= %s and name = %s", [ queue_dt[0]["id"] , server_data["queue_step_name"]] ); 
-        
-        group_id = group_dt[0]["id"]; 
-        queue_id = queue_dt[0]["id"];
-        queue_step_id =  queue_step_dt[0]["id"];
-        input = server_data["input"]; 
-        execute_in = server_data["execute_in"];
+        try:
+            js = JsonHelper();
+            protocol = "REGIS"; version = "000";
+            server_data = json.loads(server_data[0]);
+            #server_data : ('{"id": "", "group_name": "hello", "queue_name": "hello", "queue_step_name": "list", "input": "{}", "execute_in": "2000-01-01 00:00:00", "flag": ""}', '111', '222', 'REGIS', '000', '88888888', '7777777', '00000000000014')
+            #   group_name
+            #   queue_step_name
+            #   queue_name
+            #   input
+            #   execute_in
+            if not isinstance(server_data, list):
+                server_data = [server_data];
+            for element in server_data:
+                if element['id'] == "":
+                    element["id"] = str(uuid.uuid4());
+                js.write(self.transition + "/" + element["id"], element);
+                # invocando o método genérico
+            borg_response_raw(clientsocket, address, protocol, version,  json.dumps( {"status" : True} ) );
+        except:
+            borg_response_raw(clientsocket, address, protocol, version,  json.dumps( {"status" : False} ) );
 
-        # invocando o método genérico
-        borg_response_raw(clientsocket, address, protocol, version,  json.dumps( self._register(group_id, queue_id, queue_step_id, input, execute_in)) );
-    
+    def thread_register(self):   
+        js = JsonHelper();
+        while True:
+            try:
+                files_path = os.listdir(self.transition);
+                for file_path in files_path:
+                    server_data = js.read(self.transition + "/" + file_path);
+                    group_dt =      self.my.datatable("select * from mq_group where name = %s", [ server_data["group_name"] ] );
+                    queue_dt =      self.my.datatable("select * from mq_queue where name = %s", [ server_data["queue_name"] ] ); 
+                    queue_step_dt = self.my.datatable("SELECT * FROM mq_queue_step where mq_queue_id= %s and name = %s", [ queue_dt[0]["id"] , server_data["queue_step_name"]] ); 
+                    group_id = group_dt[0]["id"]; 
+                    queue_id = queue_dt[0]["id"];
+                    queue_step_id =  queue_step_dt[0]["id"];
+                    input = server_data["input"]; 
+                    execute_in = server_data["execute_in"];
+                    retorno = self._register(group_id, queue_id, queue_step_id, input, execute_in);
+                    if retorno['status'] == True:
+                        os.unlink(self.transition + "/" + file_path);
+            except:
+                traceback.print_exc();
+            finally:
+                time.sleep(20);
+        
+
+
     def _register(self, group_id, queue_id, queue_step_id, input, execute_in):
         
         try:

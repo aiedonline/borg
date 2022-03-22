@@ -19,9 +19,8 @@ from api.cacherequest import *;
 page = CacheRequest(life=60, cache=True);
 page.get("https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population");
 table = page.elements('//table/tbody')[0];
-print(table);
-trs = table.xpath("./tr");
 
+trs = table.xpath("./tr");
 elements = [];
 for tr in trs:
     tds = tr.xpath("./td");

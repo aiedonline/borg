@@ -1,4 +1,4 @@
-import hashlib, subprocess, json, time, signal, os
+import hashlib, subprocess, json, time, signal, os, sys;
 from threading import Thread;
 
 class Process():
@@ -44,7 +44,7 @@ class Process():
             os.kill(self.process_children.pid, signal.SIGINT);
             self.process_children = None;
         except:
-            print("Não foi possível fechar processo filho.");
+            stderr = 1;
     
     def __install_dependence(self, dependence):
         sub = subprocess.run([self.interpreter, os.environ['ROOT'] + "/main/api/process_module_exists.py", dependence['name']]);

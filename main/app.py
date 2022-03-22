@@ -36,8 +36,20 @@ ap.add_argument("-c", "--client", default=True,  const=True,  nargs="?", require
 ap.add_argument("-t", "--threads", default=5,    const=5,     nargs="?", required=False, help="Informe a quantidade de Threads");
 args = vars(ap.parse_args())
 
-try:
+def init_workspace():
+    if not os.path.exists(ROOT + "/.client"):
+        os.makedirs(ROOT + "/.client");
+    if not os.path.exists(ROOT + "/.server"):
+        os.makedirs(ROOT + "/.server");
+    if not os.path.exists(ROOT + "/transition"):
+        os.makedirs(ROOT + "/transition");
+    if not os.path.exists(ROOT + "/tmp"):
+        os.makedirs(ROOT + "/tmp");
     rsa = RsaHelper(path_to_pem=os.environ['SSHS'], name_file_pem="borg.pem", create_private=True);
+
+try:
+    # Init variables and directory
+    init_workspace();
     if args["server"]:
         server_process = Process( os.environ["ROOT"] + "/main/server.py", time_to_life=0, 
                                     required=[{"name" : "netifaces", "install" : "netifaces"}]);

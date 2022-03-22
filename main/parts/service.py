@@ -9,6 +9,7 @@ class Service():
     def __init__(self, CONFIG, module_label):
         self.module_label = module_label;
         self.sessions = {};
+        self.thread_receive = None;
         self.CONFIG = CONFIG;
         self.LOCAL = json.loads(open(os.environ['ROOT'] + "/main/parts/"+ module_label +"/config.json").read());
         print("\t...::: Módulo " +  module_label + ":" , self.CONFIG['port'] + self.LOCAL["port"], ":::...");
@@ -17,8 +18,8 @@ class Service():
                 self.serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
                 self.serversocket.bind(('0.0.0.0', self.CONFIG['port'] + self.LOCAL["port"]));
                 self.serversocket.listen(1500);
-                Thread(target=self.run).start();
-                #self.run();
+                self.thread_receive = Thread(target=self.run);
+                self.thread_receive.start();
                 break;
             except KeyboardInterrupt:
                 print( 'Interrupted');
@@ -59,3 +60,5 @@ class Service():
         server_data = json.loads(server_data[0]);    
         self.keyclose(server_data["session_id"]);
         borg_response_raw(clientsocket, address, "KEYCL", "000",  json.dumps( {"status" : True } ) );
+    def init_workspace(self):
+        print("do");
